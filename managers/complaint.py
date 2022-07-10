@@ -35,8 +35,16 @@ class ComplaintManager:
         complaint_data["photo_url"] = s3.upload(path, name, extension)
         os.remove(path)
         async with database.transaction() as tconn:
-            id_ = await tconn._connection.execute(complaint.insert().values(complaint_data))
-            await ComplaintManager.issue_transaction(tconn, complaint_data["amount"], f"{user['first_name']} {user['last_name']}", user["iban"], id_)
+            id_ = await tconn._connection.execute(
+                complaint.insert().values(complaint_data)
+            )
+            await ComplaintManager.issue_transaction(
+                tconn,
+                complaint_data["amount"],
+                f"{user['first_name']} {user['last_name']}",
+                user["iban"],
+                id_,
+            )
         return await database.fetch_one(complaint.select().where(complaint.c.id == id_))
 
     @staticmethod
@@ -45,8 +53,14 @@ class ComplaintManager:
 
     @staticmethod
     async def approve(id_):
-        await database.execute(complaint.update().where(complaint.c.id == id_).values(status=State.approved))
-        transaction_data = await database.fetch_one(transaction.select().where(transaction.c.complaint_id == id_))
+        await database.execute(
+            complaint.update()
+            .where(complaint.c.id == id_)
+            .values(status=State.approved)
+        )
+        transaction_data = await database.fetch_one(
+            transaction.select().where(transaction.c.complaint_id == id_)
+        )
         wise.fund_transfer(transaction_data["transfer_id"])
         ses.send_mail(
             "Complaint approved!",
@@ -56,9 +70,15 @@ class ComplaintManager:
 
     @staticmethod
     async def reject(id_):
-        transaction_data = await database.fetch_one(transaction.select().where(transaction.c.complaint_id == id_))
+        transaction_data = await database.fetch_one(
+            transaction.select().where(transaction.c.complaint_id == id_)
+        )
         wise.cancel_funds(transaction_data["transfer_id"])
-        await database.execute(complaint.update().where(complaint.c.id == id_).values(status=State.rejected))
+        await database.execute(
+            complaint.update()
+            .where(complaint.c.id == id_)
+            .values(status=State.rejected)
+        )
 
     @staticmethod
     async def issue_transaction(tconn, amount, full_name, iban, complaint_id):
@@ -70,7 +90,6 @@ class ComplaintManager:
             "transfer_id": transfer_id,
             "target_account_id": str(recipient_id),
             "amount": amount,
-            "complaint_id": complaint_id
+            "complaint_id": complaint_id,
         }
         await tconn._connection.execute(transaction.insert().values(**data))
-

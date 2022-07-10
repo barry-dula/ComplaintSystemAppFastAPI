@@ -11,5 +11,5 @@ transaction = sqlalchemy.Table(
     sqlalchemy.Column("target_account_id", sqlalchemy.String(100), nullable=False),
     sqlalchemy.Column("amount", sqlalchemy.Float, nullable=False),
     sqlalchemy.Column("amount", sqlalchemy.Float, nullable=False),
-    sqlalchemy.Column("complaint_id", sqlalchemy.ForeignKey("complaints.id"))
+    sqlalchemy.Column("complaint_id", sqlalchemy.ForeignKey("complaints.id")),
 )
